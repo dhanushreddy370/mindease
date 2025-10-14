@@ -5,7 +5,7 @@ import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Send } from "lucide-react";
+import { ArrowLeft, Send, Mic, Volume2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 type Message = {
@@ -20,6 +20,10 @@ const Chat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [voiceOutput, setVoiceOutput] = useState(true);
+  const recognitionRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -62,6 +66,60 @@ const Chat = () => {
     }
   };
 
+  const handleToggleRecording = () => {
+    if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Speech recognition is not supported in this browser.",
+        });
+        return;
+    }
+
+    if (isRecording) {
+      recognitionRef.current.stop();
+      setIsRecording(false);
+      return;
+    }
+
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.interimResults = false;
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setInput(transcript);
+    };
+    recognition.onend = () => {
+      setIsRecording(false);
+      sendMessage();
+    };
+    recognition.start();
+    setIsRecording(true);
+    recognitionRef.current = recognition;
+  };
+
+  const speak = (text: string) => {
+    if (!('speechSynthesis' in window)) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Speech synthesis is not supported in this browser.",
+        });
+        return;
+    }
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    speechSynthesis.speak(utterance);
+  };
+
+  const handleToggleVoiceOutput = () => {
+    setVoiceOutput(prev => !prev);
+    if (isSpeaking) {
+        speechSynthesis.cancel();
+        setIsSpeaking(false);
+    }
+  }
+
   const sendMessage = async () => {
     if (!input.trim() || !user) return;
 
@@ -97,6 +155,10 @@ const Chat = () => {
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+
+      if (voiceOutput) {
+        speak(assistantMessage.content);
+      }
 
       await supabase.from("chat_messages").insert({
         user_id: user.id,
@@ -169,8 +231,14 @@ const Chat = () => {
               placeholder="Type your message..."
               disabled={loading}
             />
-            <Button type="submit" disabled={loading || !input.trim()}>
+            <Button type="button" size="icon" variant="ghost" onClick={handleToggleRecording} aria-label="Toggle recording">
+                <Mic className={`w-5 h-5 ${isRecording ? "text-red-500" : ""}`} />
+            </Button>
+            <Button type="submit" disabled={loading || !input.trim()} aria-label="Send message">
               <Send className="w-4 h-4" />
+            </Button>
+            <Button type="button" size="icon" variant="ghost" onClick={handleToggleVoiceOutput} aria-label="Toggle voice output">
+                <Volume2 className={`w-5 h-5 ${voiceOutput ? "text-blue-500" : ""}`} />
             </Button>
           </form>
         </div>
