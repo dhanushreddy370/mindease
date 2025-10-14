@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendEmergencyAlert } from "../_shared/notificationService.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -92,6 +93,21 @@ serve(async (req) => {
     const distressAnalysis = await analyzeDistress(message, history || []);
 
     if (distressAnalysis.riskLevel === 'severe') {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("display_name, emergency_contact_name, emergency_contact_phone")
+        .eq("id", userId)
+        .single();
+
+      if (profile && profile.emergency_contact_phone) {
+        await sendEmergencyAlert({
+          userName: profile.display_name,
+          contactName: profile.emergency_contact_name,
+          contactPhone: profile.emergency_contact_phone,
+          reason: distressAnalysis.reason,
+        });
+      }
+
       return new Response(
         JSON.stringify({
           response: `I notice you're going through a very difficult time. Your safety is the most important thing right now.\n\nPlease reach out to:\n• National Suicide Prevention Lifeline: 988 (US)\n• Crisis Text Line: Text HOME to 741741\n• International Association for Suicide Prevention: https://www.iasp.info/resources/Crisis_Centres/\n\nYou deserve support from trained professionals who can help you through this.`,
@@ -103,7 +119,7 @@ serve(async (req) => {
 
     const { data: preferences } = await supabase
         .from("user_preferences")
-        .select("persona")
+        .select("tone, specifics") // Assuming persona is now in 'tone'
         .eq("user_id", userId)
         .single();
 
@@ -114,7 +130,7 @@ serve(async (req) => {
       supporter: 'You are an energetic, positive, and motivating supporter or cheerleader. Your role is to uplift the user. Use bright, encouraging language, celebrate their wins, and provide pep talks to help them feel confident.',
     };
 
-    const persona = preferences?.persona || 'friend';
+    const persona = preferences?.tone || 'friend'; // Using tone as persona
     const baseSystemPrompt = `You are an empathetic mental wellness companion. Your role is to:
 - Listen actively and validate emotions
 - Provide supportive, non-judgmental responses
