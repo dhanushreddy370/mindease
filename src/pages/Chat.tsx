@@ -90,6 +90,7 @@ const Chat = () => {
     };
     recognition.onend = () => {
       setIsRecording(false);
+      sendMessage();
     };
     recognition.start();
     setIsRecording(true);
