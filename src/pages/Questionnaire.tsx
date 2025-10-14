@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { companionConfig } from '../../supabase/functions/_shared/companionConfig.js';
+import { encryptData } from '@/lib/encryption';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -21,8 +22,9 @@ const OnboardingQuestionnaire = ({ onComplete }) => {
     } else {
       setLoading(true);
       try {
+        const encryptedAnswers = encryptData(JSON.stringify(newAnswers));
         const { data, error } = await supabase.functions.invoke('assign-persona', {
-          body: { answers: newAnswers },
+          body: { answers: encryptedAnswers },
         });
 
         if (error) {

@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
+import { encryptData, decryptData } from "@/lib/encryption";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -57,12 +58,14 @@ const Chat = () => {
         description: "Failed to load chat history",
       });
     } else if (data) {
-      setMessages(data.map(msg => ({
-        id: msg.id,
-        role: msg.role as "user" | "assistant",
-        content: msg.content,
-        timestamp: msg.timestamp,
-      })));
+      setMessages(
+        data.map((msg) => ({
+          id: msg.id,
+          role: msg.role as "user" | "assistant",
+          content: decryptData(msg.content),
+          timestamp: msg.timestamp,
+        }))
+      );
     }
   };
 
@@ -134,10 +137,11 @@ const Chat = () => {
     setInput("");
     setLoading(true);
 
+    const encryptedUserMessage = encryptData(userMessage.content);
     await supabase.from("chat_messages").insert({
       user_id: user.id,
       role: "user",
-      content: userMessage.content,
+      content: encryptedUserMessage,
     });
 
     try {
@@ -160,10 +164,11 @@ const Chat = () => {
         speak(assistantMessage.content);
       }
 
+      const encryptedAssistantMessage = encryptData(assistantMessage.content);
       await supabase.from("chat_messages").insert({
         user_id: user.id,
         role: "assistant",
-        content: assistantMessage.content,
+        content: encryptedAssistantMessage,
         crisis_flag: data.crisisDetected || false,
       });
     } catch (error) {

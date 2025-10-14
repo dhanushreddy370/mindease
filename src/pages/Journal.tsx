@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
+import { encryptData, decryptData } from "@/lib/encryption";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,19 +13,44 @@ const Journal = () => {
   const [user, setUser] = useState<User | null>(null);
   const [content, setContent] = useState("");
   const [moodRating, setMoodRating] = useState(3);
+  const [journals, setJournals] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
+    const fetchJournals = async (userId: string) => {
+      const { data, error } = await supabase
+        .from("journals")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load journal entries",
+        });
+      } else if (data) {
+        setJournals(
+          data.map((journal) => ({
+            ...journal,
+            content: decryptData(journal.content),
+          }))
+        );
+      }
+    };
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser(session.user);
+        fetchJournals(session.user.id);
       } else {
         navigate("/auth");
       }
     });
-  }, [navigate]);
+  }, [navigate, toast]);
 
   const handleSave = async () => {
     if (!content.trim() || !user) return;
@@ -38,9 +64,11 @@ const Journal = () => {
 
       if (error) throw error;
 
+      const encryptedContent = encryptData(content.trim());
+
       await supabase.from("journals").insert({
         user_id: user.id,
-        content: content.trim(),
+        content: encryptedContent,
         mood_rating: moodRating,
         detected_emotions: data.emotions || [],
       });
@@ -52,6 +80,10 @@ const Journal = () => {
 
       setContent("");
       setMoodRating(3);
+      setJournals([
+        { content: content.trim(), created_at: new Date().toISOString(), mood_rating: moodRating },
+        ...journals,
+      ]);
     } catch (error) {
       toast({
         variant: "destructive",
@@ -116,6 +148,22 @@ const Journal = () => {
             </Button>
           </CardContent>
         </Card>
+
+        <div className="mt-8">
+          <h2 className="text-2xl font-bold mb-4">Past Entries</h2>
+          <div className="space-y-4">
+            {journals.map((journal) => (
+              <Card key={journal.id}>
+                <CardContent className="p-4">
+                  <p className="text-sm text-muted-foreground">
+                    {new Date(journal.created_at).toLocaleString()}
+                  </p>
+                  <p className="mt-2">{journal.content}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
       </main>
     </div>
   );

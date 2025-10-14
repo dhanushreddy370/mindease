@@ -1,11 +1,34 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { companionConfig } from "../_shared/companionConfig.js";
+import nacl from "https://cdn.jsdelivr.net/npm/tweetnacl@1.0.3/+esm";
+import { decodeBase64, encodeBase64 } from "https://deno.land/std@0.224.0/encoding/base64.ts";
+import { decodeUTF8, encodeUTF8 } from "https://cdn.jsdelivr.net/npm/tweetnacl-util@0.15.1/+esm";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const decryptData = (encryptedData: string) => {
+  const secretKey = Deno.env.get("VITE_ENCRYPTION_KEY")!;
+  const secretKeyBytes = decodeBase64(secretKey);
+  const dataWithNonce = decodeBase64(encryptedData);
+  const nonce = dataWithNonce.slice(0, nacl.secretbox.nonceLength);
+  const message = dataWithNonce.slice(
+    nacl.secretbox.nonceLength,
+    dataWithNonce.length
+  );
+
+  const decrypted = nacl.secretbox.open(message, nonce, secretKeyBytes);
+
+  if (!decrypted) {
+    throw new Error("Failed to decrypt data");
+  }
+
+  return JSON.parse(new TextDecoder().decode(decrypted));
+};
+
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -13,7 +36,8 @@ serve(async (req) => {
   }
 
   try {
-    const { answers } = await req.json();
+    let { answers } = await req.json();
+    answers = decryptData(answers);
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
