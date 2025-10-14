@@ -46,7 +46,7 @@ serve(async (req) => {
 
     const { error } = await supabase
       .from("user_preferences")
-      .upsert({ user_id: user.id, tone: determinedPersona }, { onConflict: 'user_id' });
+      .upsert({ user_id: user.id, persona: determinedPersona }, { onConflict: 'user_id' });
 
     if (error) {
       throw error;

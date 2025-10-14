@@ -54,7 +54,7 @@ serve(async (req) => {
 
     const { data: preferences } = await supabase
         .from("user_preferences")
-        .select("tone, specifics, persona")
+        .select("persona")
         .eq("user_id", userId)
         .single();
 
@@ -74,7 +74,6 @@ serve(async (req) => {
 - Never provide medical diagnoses or emergency crisis intervention
 - Be warm, compassionate, and understanding
 - Keep responses conversational and caring, not clinical.
-- Your tone should be ${preferences?.tone || 'friendly'}.
 - If the user's message is short (1-2 sentences), keep your response to a similar length.
 - If the user's message is longer and more detailed, provide a more thoughtful and comprehensive response.`;
 
