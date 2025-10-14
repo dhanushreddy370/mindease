@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { companionConfig } from "../_shared/companionConfig.js";
+import { calculatePersona } from "../_shared/scoring.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,24 +25,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const scores = {
-      friend: 0,
-      mentor: 0,
-      romanticPartner: 0,
-      supporter: 0,
-    };
-
-    for (const answer of answers) {
-      const question = companionConfig.questionnaire.find(q => q.id == answer.questionId);
-      const option = question.options.find(o => o.id === answer.optionId);
-      if (option && option.scores) {
-        for (const persona in option.scores) {
-          scores[persona] += option.scores[persona];
-        }
-      }
-    }
-
-    const determinedPersona = Object.keys(scores).reduce((a, b) => scores[a] > scores[b] ? a : b);
+    const determinedPersona = calculatePersona(answers);
 
     const { error } = await supabase
       .from("user_preferences")
