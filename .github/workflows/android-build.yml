@@ -34,39 +34,39 @@ jobs:
         with:
           node-version: '18' # Use a Long-Term Support version of Node
 
-      # 4. Install project's dependencies
-      - name: Install Dependencies
+      # 4. Install project's dependencies for the web app
+      - name: Install Web App Dependencies
         run: npm install
 
-      # 5. Build the web app
+      # 5. Build the web app to create the /dist folder
       - name: Build Web App
         run: npm run build
 
-      # 6. Install Cordova
+      # 6. Install Cordova CLI globally
       - name: Install Cordova
         run: npm install -g cordova
 
-      # 7. Create Cordova project
-      - name: Create Cordova project
+      # 7. Create the Cordova project folder
+      - name: Create Cordova Project
         run: cordova create mobile-app com.yourapp.companion "MindEase"
 
-      # 8. Replace www directory
+      # 8. Replace the default www folder with the built web app
       - name: Replace www directory
         run: |
           rm -rf mobile-app/www
           cp -r dist mobile-app/www
 
-      # 9. Add Android Platform
+      # 9. Add the Android platform to the Cordova project
       - name: Add Android Platform
         working-directory: ./mobile-app
         run: cordova platform add android
 
-      # 10. Runs the build command to create the unsigned debug APK
+      # 10. Build the unsigned debug APK
       - name: Build Unsigned APK
         working-directory: ./mobile-app
         run: cordova build android
 
-      # 11. Uploads the generated APK file as an artifact
+      # 11. Upload the generated APK as a downloadable artifact
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
