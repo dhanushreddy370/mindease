@@ -52,17 +52,28 @@ serve(async (req) => {
       .order("timestamp", { ascending: true })
       .limit(20);
 
-    const messages = [
-      {
-        role: "system",
-        content: `You are an empathetic mental wellness companion. Your role is to:
+    const { data: preferences } = await supabase
+        .from("user_preferences")
+        .select("tone, specifics")
+        .eq("user_id", userId)
+        .single();
+
+    const systemPrompt = `You are an empathetic mental wellness companion. Your role is to:
 - Listen actively and validate emotions
 - Provide supportive, non-judgmental responses
 - Use principles of Cognitive Behavioral Therapy when appropriate
 - Encourage healthy coping strategies
 - Never provide medical diagnoses or emergency crisis intervention
 - Be warm, compassionate, and understanding
-- Keep responses conversational and caring, not clinical`
+- Keep responses conversational and caring, not clinical.
+- Your tone should be ${preferences?.tone || 'friendly'}.
+- If the user's message is short (1-2 sentences), keep your response to a similar length.
+- If the user's message is longer and more detailed, provide a more thoughtful and comprehensive response.`;
+
+    const messages = [
+      {
+        role: "system",
+        content: systemPrompt,
       },
       ...(history || []).map(msg => ({
         role: msg.role,

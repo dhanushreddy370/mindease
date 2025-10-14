@@ -54,7 +54,6 @@ const Auth = () => {
         data: {
           display_name: displayName || email.split("@")[0],
         },
-        emailRedirectTo: `${window.location.origin}/dashboard`,
       },
     });
 
@@ -71,7 +70,7 @@ const Auth = () => {
         title: "Welcome to MindEase",
         description: "Your account has been created successfully.",
       });
-      navigate("/dashboard");
+      navigate("/questionnaire");
     }
   };
 
