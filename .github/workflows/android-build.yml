@@ -26,18 +26,24 @@ jobs:
         with:
           node-version: '18'
 
-      # 4. Installs Cordova and your project's dependencies from package.json
+      # 4. Installs Cordova and your project's dependencies
       - name: Install Dependencies
+        # This command now runs inside your app's folder
+        working-directory: ./YOUR_APP_FOLDER_NAME # <-- REPLACE THIS
         run: |
           npm install -g cordova
           npm install
 
       # 5. Adds the Android platform to the project
       - name: Add Android Platform
+        # This command now runs inside your app's folder
+        working-directory: ./YOUR_APP_FOLDER_NAME # <-- REPLACE THIS
         run: cordova platform add android
 
       # 6. Builds the unsigned debug APK
       - name: Build Unsigned APK
+        # This command now runs inside your app's folder
+        working-directory: ./YOUR_APP_FOLDER_NAME # <-- REPLACE THIS
         run: cordova build android
 
       # 7. Uploads the generated APK as a downloadable artifact
@@ -45,5 +51,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-debug.apk
-          path: platforms/android/app/build/outputs/apk/debug/app-debug.apk
+          # The path is updated to look inside your app's folder
+          path: YOUR_APP_FOLDER_NAME/platforms/android/app/build/outputs/apk/debug/app-debug.apk # <-- REPLACE THIS
 
