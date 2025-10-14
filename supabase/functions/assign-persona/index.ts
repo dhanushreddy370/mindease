@@ -14,6 +14,22 @@ serve(async (req) => {
 
   try {
     const { answers } = await req.json();
+
+    // Validate input
+    if (!answers || !Array.isArray(answers)) {
+      return new Response(JSON.stringify({ error: 'Invalid answers format' }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+    if (answers.length === 0 || answers.length > 20) {
+      return new Response(JSON.stringify({ error: 'Answers array must contain 1-20 items' }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
@@ -25,7 +41,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const scores = {
+    const scores: Record<string, number> = {
       friend: 0,
       mentor: 0,
       romanticPartner: 0,
@@ -33,16 +49,22 @@ serve(async (req) => {
     };
 
     for (const answer of answers) {
-      const question = companionConfig.questionnaire.find(q => q.id == answer.questionId);
-      const option = question.options.find(o => o.id === answer.optionId);
+      const question = companionConfig.questionnaire.find((q: any) => q.id == answer.questionId);
+      if (!question) continue;
+      
+      const option = question.options.find((o: any) => o.id === answer.optionId);
       if (option && option.scores) {
         for (const persona in option.scores) {
-          scores[persona] += option.scores[persona];
+          if (scores.hasOwnProperty(persona)) {
+            scores[persona] += (option.scores as any)[persona];
+          }
         }
       }
     }
 
-    const determinedPersona = Object.keys(scores).reduce((a, b) => scores[a] > scores[b] ? a : b);
+    const determinedPersona = Object.keys(scores).reduce((a, b) => 
+      scores[a] > scores[b] ? a : b
+    );
 
     const { error } = await supabase
       .from("user_preferences")
@@ -56,9 +78,12 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), 
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
   }
 });

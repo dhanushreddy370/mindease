@@ -143,7 +143,7 @@ const Chat = () => {
 
     try {
       const { data, error } = await supabase.functions.invoke("chat-ai", {
-        body: { message: userMessage.content, userId: user.id },
+        body: { message: userMessage.content },
       });
 
       if (error) throw error;
