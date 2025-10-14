@@ -29,7 +29,7 @@ const App = () => (
           <Route path="/journal" element={<Journal />} />
           <Route path="/insights" element={<Insights />} />
           <Route path="/mood-log" element={<MoodLog />} />
-          <Route path="/questionnaire" element={<Questionnaire />} />
+          <Route path="/questionnaire" element={<Questionnaire onComplete={() => {}} />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
