@@ -7,14 +7,63 @@ const corsHeaders = {
 };
 
 const crisisKeywords = [
-  "suicide", "kill myself", "end my life", "self-harm", "hurt myself",
-  "want to die", "better off dead", "no reason to live"
+  'kill myself', 'want to die', 'end it all', 'no reason to live', 'can\'t go on',
+  'suicide', 'self-harm', 'hurt myself', 'better off dead'
 ];
 
-const detectCrisis = (text: string): boolean => {
+const detectCrisisKeywords = (text: string): boolean => {
   const lowerText = text.toLowerCase();
   return crisisKeywords.some(keyword => lowerText.includes(keyword));
 };
+
+async function analyzeDistress(message, history) {
+  if (!detectCrisisKeywords(message)) {
+    return { riskLevel: "none", reason: "" };
+  }
+
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  const systemPrompt = `You are a highly advanced AI safety and distress classification model. Your sole task is to analyze the following user message and conversation history for signs of immediate risk of self-harm. Do not respond to the user or generate conversational text. Based on the provided context, classify the user's situation into one of three risk levels: 'none', 'moderate', or 'severe'. Provide a brief, generic, and anonymous 'reason' for your classification. Your response MUST be in the following JSON format and nothing else:
+
+{
+  "riskLevel": "...",
+  "reason": "..."
+}
+
+Example reasons:
+- "The user is expressing feelings of hopelessness."
+- "The user is making direct statements about self-harm."
+- "The user's language indicates severe emotional distress and isolation."
+
+Analyze this conversation:`;
+
+  const messages = [
+    { role: "system", content: systemPrompt },
+    ...history.map(msg => ({ role: msg.role, content: msg.content })),
+    { role: "user", content: message }
+  ];
+
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages,
+      response_format: { type: "json_object" },
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("AI Safety Analysis error:", response.status, errorText);
+    // Fallback to a default severe risk level if the safety model fails
+    return { riskLevel: "severe", reason: "AI safety model call failed." };
+  }
+
+  return await response.json();
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -29,18 +78,6 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY not configured");
     }
 
-    const isCrisis = detectCrisis(message);
-
-    if (isCrisis) {
-      return new Response(
-        JSON.stringify({
-          response: `I notice you're going through a very difficult time. Your safety is the most important thing right now.\n\nPlease reach out to:\n• National Suicide Prevention Lifeline: 988 (US)\n• Crisis Text Line: Text HOME to 741741\n• International Association for Suicide Prevention: https://www.iasp.info/resources/Crisis_Centres/\n\nYou deserve support from trained professionals who can help you through this.`,
-          crisisDetected: true,
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -50,7 +87,19 @@ serve(async (req) => {
       .select("role, content")
       .eq("user_id", userId)
       .order("timestamp", { ascending: true })
-      .limit(20);
+      .limit(10); // Fetch last 10 messages for context
+
+    const distressAnalysis = await analyzeDistress(message, history || []);
+
+    if (distressAnalysis.riskLevel === 'severe') {
+      return new Response(
+        JSON.stringify({
+          response: `I notice you're going through a very difficult time. Your safety is the most important thing right now.\n\nPlease reach out to:\n• National Suicide Prevention Lifeline: 988 (US)\n• Crisis Text Line: Text HOME to 741741\n• International Association for Suicide Prevention: https://www.iasp.info/resources/Crisis_Centres/\n\nYou deserve support from trained professionals who can help you through this.`,
+          crisisDetected: true,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const { data: preferences } = await supabase
         .from("user_preferences")
@@ -112,10 +161,21 @@ serve(async (req) => {
     const data = await response.json();
     const aiResponse = data.choices[0].message.content;
 
+    // Save the message and analysis to the database
+    const { error: insertError } = await supabase.from('chat_messages').insert([
+      { user_id: userId, role: 'user', content: message, distress_analysis: distressAnalysis },
+      { user_id: userId, role: 'assistant', content: aiResponse }
+    ]);
+
+    if (insertError) {
+      console.error("Error saving chat messages:", insertError);
+      // Decide if you want to throw or just log
+    }
+
     return new Response(
       JSON.stringify({
         response: aiResponse,
-        crisisDetected: false,
+        crisisDetected: distressAnalysis.riskLevel !== 'none',
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
