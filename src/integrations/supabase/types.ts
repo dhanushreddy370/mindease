@@ -103,6 +103,9 @@ export type Database = {
           created_at: string | null
           display_name: string | null
           email: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          emergency_contact_relationship: string | null
           id: string
           wellbeing_goals: string[] | null
         }
@@ -110,6 +113,9 @@ export type Database = {
           created_at?: string | null
           display_name?: string | null
           email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emergency_contact_relationship?: string | null
           id: string
           wellbeing_goals?: string[] | null
         }
@@ -117,8 +123,41 @@ export type Database = {
           created_at?: string | null
           display_name?: string | null
           email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emergency_contact_relationship?: string | null
           id?: string
           wellbeing_goals?: string[] | null
+        }
+        Relationships: []
+      }
+      scheduled_notifications: {
+        Row: {
+          created_at: string | null
+          event_context: string | null
+          id: string
+          message: string
+          scheduled_for: string
+          sent: boolean | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          event_context?: string | null
+          id?: string
+          message: string
+          scheduled_for: string
+          sent?: boolean | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          event_context?: string | null
+          id?: string
+          message?: string
+          scheduled_for?: string
+          sent?: boolean | null
+          user_id?: string
         }
         Relationships: []
       }

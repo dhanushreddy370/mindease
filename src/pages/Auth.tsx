@@ -14,10 +14,19 @@ const authSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
+const emergencyContactSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format (use +countrycode followed by number)"),
+  relationship: z.string().min(2, "Please specify relationship"),
+});
+
 const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [emergencyName, setEmergencyName] = useState("");
+  const [emergencyPhone, setEmergencyPhone] = useState("");
+  const [emergencyRelationship, setEmergencyRelationship] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -35,6 +44,11 @@ const Auth = () => {
     
     try {
       authSchema.parse({ email, password });
+      emergencyContactSchema.parse({ 
+        name: emergencyName, 
+        phone: emergencyPhone, 
+        relationship: emergencyRelationship 
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast({
@@ -47,7 +61,7 @@ const Auth = () => {
     }
 
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
+    const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -57,21 +71,38 @@ const Auth = () => {
       },
     });
 
-    setLoading(false);
-
-    if (error) {
+    if (authError) {
+      setLoading(false);
       toast({
         variant: "destructive",
         title: "Sign Up Failed",
-        description: error.message,
+        description: authError.message,
       });
-    } else {
-      toast({
-        title: "Welcome to MindEase",
-        description: "Your account has been created successfully.",
-      });
-      navigate("/questionnaire");
+      return;
     }
+
+    // Store emergency contact in profile
+    if (authData.user) {
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          emergency_contact_name: emergencyName,
+          emergency_contact_phone: emergencyPhone,
+          emergency_contact_relationship: emergencyRelationship,
+        })
+        .eq('id', authData.user.id);
+
+      if (profileError) {
+        console.error("Error saving emergency contact:", profileError);
+      }
+    }
+
+    setLoading(false);
+    toast({
+      title: "Welcome to MindEase",
+      description: "Your account has been created successfully.",
+    });
+    navigate("/questionnaire");
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -185,6 +216,53 @@ const Auth = () => {
                     required
                   />
                 </div>
+                
+                <div className="border-t pt-4 mt-4">
+                  <h3 className="text-sm font-semibold mb-3 text-foreground">Emergency Contact (Required)</h3>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    In case of severe distress, we can notify your emergency contact via WhatsApp.
+                  </p>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="emergency-name">Emergency Contact Name</Label>
+                    <Input
+                      id="emergency-name"
+                      type="text"
+                      placeholder="Full name"
+                      value={emergencyName}
+                      onChange={(e) => setEmergencyName(e.target.value)}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="emergency-phone">WhatsApp Number</Label>
+                    <Input
+                      id="emergency-phone"
+                      type="tel"
+                      placeholder="+1234567890"
+                      value={emergencyPhone}
+                      onChange={(e) => setEmergencyPhone(e.target.value)}
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Include country code (e.g., +1 for US, +44 for UK)
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="emergency-relationship">Relationship</Label>
+                    <Input
+                      id="emergency-relationship"
+                      type="text"
+                      placeholder="e.g., Parent, Spouse, Friend"
+                      value={emergencyRelationship}
+                      onChange={(e) => setEmergencyRelationship(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+                
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? "Creating account..." : "Create Account"}
                 </Button>

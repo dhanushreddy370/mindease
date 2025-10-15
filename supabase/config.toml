@@ -1,1 +1,16 @@
 project_id = "bhlpibbgldzknbafbnac"
+
+[functions.chat-ai]
+verify_jwt = true
+
+[functions.assign-persona]
+verify_jwt = true
+
+[functions.analyze-journal]
+verify_jwt = true
+
+[functions.send-emergency-alert]
+verify_jwt = true
+
+[functions.send-scheduled-notification]
+verify_jwt = false

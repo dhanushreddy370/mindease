@@ -11,9 +11,19 @@ const crisisKeywords = [
   "want to die", "better off dead", "no reason to live"
 ];
 
+const extremeDistressKeywords = [
+  "can't go on", "giving up", "no hope", "can't take it anymore",
+  "everything is falling apart", "completely alone", "nobody cares"
+];
+
 const detectCrisis = (text: string): boolean => {
   const lowerText = text.toLowerCase();
   return crisisKeywords.some(keyword => lowerText.includes(keyword));
+};
+
+const detectExtremeDistress = (text: string): boolean => {
+  const lowerText = text.toLowerCase();
+  return extremeDistressKeywords.some(keyword => lowerText.includes(keyword));
 };
 
 serve(async (req) => {
@@ -76,6 +86,7 @@ serve(async (req) => {
     }
 
     const isCrisis = detectCrisis(message);
+    const isExtremeDistress = detectExtremeDistress(message);
 
     if (isCrisis) {
       return new Response(
@@ -85,6 +96,18 @@ serve(async (req) => {
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // If extreme distress detected, trigger emergency alert in background
+    if (isExtremeDistress) {
+      // Non-blocking emergency alert
+      fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-emergency-alert`, {
+        method: "POST",
+        headers: {
+          "Authorization": authHeader!,
+          "Content-Type": "application/json",
+        },
+      }).catch(err => console.error("Failed to send emergency alert:", err));
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -114,7 +137,42 @@ serve(async (req) => {
 - Keep responses conversational and caring, not clinical.
 - Your tone should be ${preferences?.tone || 'friendly'}.
 - If the user's message is short (1-2 sentences), keep your response to a similar length.
-- If the user's message is longer and more detailed, provide a more thoughtful and comprehensive response.`;
+- If the user's message is longer and more detailed, provide a more thoughtful and comprehensive response.
+
+When the user mentions a future event with a specific time, use the schedule_reminder tool to help them.`;
+
+    const tools = [
+      {
+        type: "function",
+        function: {
+          name: "schedule_reminder",
+          description: "Schedule a reminder notification for a future event the user mentioned. Extract the event name, time, and create an encouraging message.",
+          parameters: {
+            type: "object",
+            properties: {
+              event_name: {
+                type: "string",
+                description: "Short name of the event (e.g., 'job interview', 'doctor appointment')"
+              },
+              scheduled_time: {
+                type: "string",
+                description: "ISO 8601 timestamp when the reminder should be sent (e.g., '2025-10-16T13:45:00Z')"
+              },
+              reminder_message: {
+                type: "string",
+                description: "An encouraging message to send with the reminder"
+              },
+              event_context: {
+                type: "string",
+                description: "Additional context about the event"
+              }
+            },
+            required: ["event_name", "scheduled_time", "reminder_message"],
+            additionalProperties: false
+          }
+        }
+      }
+    ];
 
     const messages = [
       {
@@ -137,6 +195,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages,
+        tools,
       }),
     });
 
@@ -147,7 +206,36 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    const aiResponse = data.choices[0].message.content;
+    const choice = data.choices[0];
+    
+    // Check if AI wants to use a tool
+    if (choice.message.tool_calls && choice.message.tool_calls.length > 0) {
+      const toolCall = choice.message.tool_calls[0];
+      if (toolCall.function.name === "schedule_reminder") {
+        const args = JSON.parse(toolCall.function.arguments);
+        
+        // Store notification in database
+        await supabase.from('scheduled_notifications').insert({
+          user_id: userId,
+          scheduled_for: args.scheduled_time,
+          message: args.reminder_message,
+          event_context: args.event_context || args.event_name,
+        });
+        
+        const aiResponse = `I've scheduled a reminder for your ${args.event_name}. I'll send you an encouraging message beforehand. You've got this! 💪`;
+        
+        return new Response(
+          JSON.stringify({
+            response: aiResponse,
+            crisisDetected: false,
+            reminderScheduled: true,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+    
+    const aiResponse = choice.message.content;
 
     return new Response(
       JSON.stringify({
