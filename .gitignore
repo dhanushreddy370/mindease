@@ -1,3 +1,13 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Production builds
+dist/
+dist-ssr/
+build/
+*.local
+
 # Logs
 logs
 *.log
@@ -7,18 +17,25 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
-.vscode/*
+# OS / Editor
+.DS_Store
+.vscode/
 !.vscode/extensions.json
 .idea
-.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+Thumbs.db
+
+# Environment Variables
+.env
+.env.*
+!.env.example
+
+# Testing coverage
+coverage/
+
+# Interview Prep
+explanation.txt

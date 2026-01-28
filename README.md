@@ -1,73 +1,100 @@
-# Welcome to your Lovable project
+# MindEase 🧠
 
-## Project info
+> A modern mental health and journaling application designed to provide a safe space for self-reflection and mood tracking.
 
-**URL**: https://lovable.dev/projects/1ae235a1-da6f-4081-8ed8-212299fe1556
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![React](https://img.shields.io/badge/frontend-React_%2B_Vite-61DAFB)
+![Node](https://img.shields.io/badge/backend-Node.js-339933)
+![MongoDB](https://img.shields.io/badge/database-MongoDB-47A248)
 
-## How can I edit this code?
+## 📖 Overview
 
-There are several ways of editing your application.
+MindEase is a full-stack MERN (MongoDB, Express, React, Node.js) application that helps users track their emotional well-being. It features a secure journaling interface, mood logging with visualization, and AI-driven insights to promote mental wellness.
 
-**Use Lovable**
+### Key Features
+- **📊 Mood Tracking**: Log daily moods and visualize trends over time.
+- **📔 Private Journal**: Secure, rich-text editor for personal thoughts.
+- **🤖 AI Insights**: Get therapeutic feedback and patterns from your entries.
+- **🔒 Secure Authentication**: Robust user management and data privacy.
+- **📱 Responsive Design**: Beautiful, calming UI built with Tailwind CSS and shadcn/ui.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/1ae235a1-da6f-4081-8ed8-212299fe1556) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🛠️ Tech Stack
 
-**Use your preferred IDE**
+### Frontend
+- **Framework**: React 18 (Vite)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS, shadcn/ui
+- **State Management**: React Query (TanStack Query)
+- **Routing**: React Router DOM (SPA)
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Backend
+- **Runtime**: Node.js
+- **Framework**: Express.js
+- **Database**: MongoDB (Mongoose ODM)
+- **Cache/Rate Limiting**: Redis (Upstash)
+- **Security**: Helmet, CORS, JWT Authentication
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+---
 
-Follow these steps:
+## 🚀 Getting Started
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### Prerequisites
+- Node.js (v18+)
+- MongoDB Atlas Account (or local instance)
+- Upstash Redis Account (optional, for rate limiting)
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### Installation
 
-# Step 3: Install the necessary dependencies.
-npm i
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/dhanushreddy370/mindease.git
+   cd mindease
+   ```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+2. **Install Dependencies**
+   ```bash
+   # Install backend dependencies
+   cd backend && npm install
 
-**Edit a file directly in GitHub**
+   # Install frontend dependencies
+   cd ../frontend && npm install
+   ```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+3. **Environment Setup**
+   - Create `backend/.env` (see `backend/.env.example`)
+   - Create `frontend/.env` (see `frontend/.env.example`)
 
-**Use GitHub Codespaces**
+4. **Run Locally**
+   ```bash
+   # Terminal 1: Start Backend (Port 3000)
+   cd backend && npm run dev
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+   # Terminal 2: Start Frontend (Port 8080)
+   cd frontend && npm run dev
+   ```
 
-## What technologies are used for this project?
+---
 
-This project is built with:
+## 📦 Deployment
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+This application is configured for easy deployment on **Vercel** (Frontend) and **Render** (Backend).
 
-## How can I deploy this project?
+Please refer to [DEPLOYMENT.md](./DEPLOYMENT.md) for a detailed, step-by-step deployment guide.
 
-Simply open [Lovable](https://lovable.dev/projects/1ae235a1-da6f-4081-8ed8-212299fe1556) and click on Share -> Publish.
+---
 
-## Can I connect a custom domain to my Lovable project?
+## 🤝 Contributing
 
-Yes, you can!
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+1. Fork the project
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## 📄 License
+
+This project is open source and available under the [MIT License](LICENSE).
